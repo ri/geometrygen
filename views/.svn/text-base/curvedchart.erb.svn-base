@@ -1,0 +1,133 @@
+<script>
+  //setup
+	selection = "body";
+  width = 1200;
+  height = 800;
+
+  svg = d3.select(selection).append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+  //Data
+  var allData, bombData, airStrikeData, shootingData, raidData;
+  var bombDataByMonth, airStrikeDataByMonth, shootingDataByMonth, raidDataByMonth;
+  var bombDataByMonthArray, airStrikeDataByMonthArray, shootingDataByMonthArray, raidDataByMonthArray;
+
+	d3.tsv("data.tsv", function(error, data) {
+    var allData = data;
+    airData = data.filter(function(d) {
+      return d["Event Type 1"] == "air";
+    });
+    groundData = data.filter(function(d) {
+      return d["Event Type 1"] == "ground";
+    });
+    var dateFormat = d3.time.format("%e-%b-%y")
+    
+    airByMonth = getDataByMonth(airData);
+    groundByMonth = getDataByMonth(groundData);
+
+    var dateFormat = d3.time.format("%e-%b-%y");
+    var timeScale = d3.time.scale()
+            .domain(d3.extent(allData, function(d) { return dateFormat.parse(d.date); }))
+            .range([0, 1000]);
+    var xScale = d3.scale.linear().domain([0, 127]).range([0, width]).nice();
+    var yScale = d3.scale.linear().clamp(true).domain([1, 1200]).range([0, height/2]).nice();
+
+    var condensedDateFormat = d3.time.format("%m/%Y");
+
+    bombData = filterEventBy(data, "bomb");
+    airStrikeData = filterEventBy(data, "airstrike");
+    shootingData = filterEventBy(data, "shoot");
+    raidData = filterEventBy(data, "raid");
+
+    bombDataByMonth = getDataByMonth(bombData);
+    airStrikeDataByMonth = getDataByMonth(airStrikeData);
+    shootingDataByMonth = getDataByMonth(shootingData);
+    raidDataByMonth = getDataByMonth(raidData);
+    monthsList = [];
+    for (y=2001;y<=2012;y++) {
+      for (m=1;m<=12;m++) {
+        if(!(y==2001 && m <= 8) && !(y==2012 && m > 4)) {
+          monthsList.push(m.toString() + "/" + y.toString());
+        }
+      }
+    }
+
+    airDataByMonthArray = monthsList.map(function(month) { return airByMonth[month] || 0})
+    groundDataByMonthArray = monthsList.map(function(month) { return groundByMonth[month] || 0})
+    bombDataByMonthArray = monthsList.map(function(month) { return bombDataByMonth[month] || 0});
+    airStrikeDataByMonthArray = monthsList.map(function(month) { return airStrikeDataByMonth[month] || 0});
+    shootingDataByMonthArray = monthsList.map(function(month) { return shootingDataByMonth[month] || 0});
+    raidDataByMonthArray = monthsList.map(function(month) { return raidDataByMonth[month] || 0});
+
+    // lineChart(xScale, yScale, bombDataByMonthArray, "red");
+    // lineChart(xScale, yScale, airStrikeDataByMonthArray, "blue");
+    // downwardLineChart(xScale, yScale, shootingDataByMonthArray, "green");
+    // downwardLineChart(xScale, yScale, raidDataByMonthArray, "orange");
+
+    lineChart(xScale, yScale, airDataByMonthArray, "blue");
+    downwardLineChart(xScale, yScale, groundDataByMonthArray, "green");
+
+    function lineChart(xScale, yScale, data, colour) {
+      var x = xScale, 
+          y = yScale;
+      var line = d3.svg.line()
+                   .interpolate("cardinal")
+                   .x(function(d, i) { return x(i) })
+                   .y(function(d) { return height/2 + 10 - y(d);});
+
+      var chart = svg.append("g");
+      chart.append("path").attr("d", line(data)).attr("fill", "none").attr("fill", colour);
+    }
+
+    function downwardLineChart(xScale, yScale, data, colour) {
+      var x = xScale, 
+          y = yScale;
+      var line = d3.svg.line()
+                   .interpolate("cardinal")
+                   .x(function(d, i) { return x(i)})
+                   .y(function(d) { return height/2 + 10 + y(d);});
+
+      var chart = svg.append("g");
+      chart.append("path").attr("d", line(data)).attr("fill", "none").attr("fill", colour);
+    }
+
+    function filterEventBy(data, event) {
+      return data.filter(function(d) {
+        return d["Event Type 2"].toLowerCase().indexOf(event) >= 0;
+      });
+    }
+
+    function getDataByMonth(data) {
+      dataByMonth = d3.nest()
+        .key(function(d) {
+          date = dateFormat.parse(d.date);
+          if(date)
+          {
+            month = date.getUTCMonth() + 1;
+            year = date.getUTCFullYear();
+            return month + "/" + year;
+          }
+          else {
+            return 0;
+          }
+        })
+        .rollup(function(d) {
+          return {  
+                    "casualties (min)": d3.sum(d, function(g) {
+                      return g["civilians killed (min)"];
+                    }),
+                    "casualties (max)": d3.sum(d, function(g) {
+                      return g["civilians killed (max)"];
+                    })
+                  }
+        })
+        .entries(data);
+
+      var dataByMonthHash = {};
+      dataByMonth.map(function(d) { dataByMonthHash[d.key] = d.values["casualties (min)"]} );
+      return dataByMonthHash;
+    }
+
+  });
+</script>

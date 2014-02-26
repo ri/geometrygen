@@ -1,0 +1,220 @@
+<table style="position: absolute; display: none" padding=0 margin=0>
+  <% 100.times do |row| %>
+    <tr>
+    <% 100.times do |column| %>
+      <td style="border:1px solid #f2f2f2; height: 10px; width: 10px; " cellpadding=0></td>
+    <% end %>
+    </tr>
+  <% end %>
+</table>
+<script>
+  //setup
+	selection = "body";
+
+	svg = d3.select(selection).append("svg")
+        .attr("width", 1000)
+        .attr("height", 800);
+
+  tooltip = d3.select(selection).append("div")   
+    .attr("class", "tooltip")               
+    .style("opacity", 0);
+
+  //Data
+  var allData, airData, groundData, airByMonth, groundByMonth;
+  var dateFormat = d3.time.format("%e-%b-%y")
+  //Scales
+  var timeScale, linearScale;
+
+  function getDataByMonth(data) {
+    dataByMonth = d3.nest()
+      .key(function(d) {
+        date = dateFormat.parse(d.date);
+        if(date)
+        {
+          month = date.getUTCMonth() + 1;
+          year = date.getUTCFullYear();
+          return month + "/" + year;
+        }
+        else {
+          return 0;
+        }
+      })
+      .rollup(function(d) {
+        return {  
+                  "casualties (min)": d3.sum(d, function(g) {
+                    return g["civilians killed (min)"];
+                  }),
+                  "casualties (max)": d3.sum(d, function(g) {
+                    return g["civilians killed (max)"];
+                  })
+                }
+      })
+      .entries(data);
+
+    return dataByMonth;
+  }
+
+  function uprightBarChart() {
+    var chart, x, y, colour,
+        width = 600,
+        height = 100;
+
+    function my(data, width, height, xScale, yScale, colour, container) {
+      x = xScale,
+      y = yScale,
+      width = width,
+      height = height,
+      colour = colour;
+
+      chart = container.append("g").selectAll("rect")
+        .data(data)
+      .enter().append("rect")
+        .attr("x", function(d,i) {
+          return x(dateFormat.parse(d.key));
+        })
+        .attr("y", function(d,i) {
+          return height - y(d.values["casualties (min)"]);
+        })
+        .attr("width", 5)
+        .attr("height", function(d) {
+          return y(d.values["casualties (min)"]);
+        })
+        .attr("fill", colour)
+
+    }
+
+    function addToolTip() {
+      chart.on("mouseover", function(d, i) {
+          tooltip.html(d.key + ", " + d.values["casualties (min)"])  
+            .style("left", i * 5 + "px")     
+            .style("top", 90 + "px")
+            .style("opacity", 1)
+            .style("position", "absolute");
+
+          d3.select(this).attr("opacity", 0.5).transition();
+        })
+      .on("mouseout", function() {
+
+      d3.select(this).attr("opacity", 1).transition();
+        tooltip.style("opacity", 0);
+      })
+    }
+    return my;
+  }
+
+    function downwardBarChart() {
+    var chart, x, y, colour,
+        width = 600,
+        height = 100;
+
+    function my(data, width, height, xScale, yScale, colour, container) {
+      x = xScale,
+      y = yScale,
+      width = width,
+      height = height,
+      colour = colour;
+
+      chart = container.append("g").selectAll("rect")
+        .data(data)
+        .enter().append("rect")
+          .attr("x", function(d,i) {
+            return x(dateFormat.parse(d.key));
+          })
+          .attr("y", function(d,i) {
+            return height;
+          })
+          .attr("width", 5)
+          .attr("height", function(d) {
+            return y(d.values["casualties (min)"]);
+          })
+          .attr("fill", colour)
+    }
+
+    return my;
+  }
+
+  function drawGraph(data, width, height, dateFormat, linearScale, timeScale, orientation) {
+
+
+    // var xAxis = d3.svg.axis()
+    //           .scale(x)
+    //           .orient("bottom"),
+    //     yAxis = d3.svg.axis()
+    //           .scale(y)
+    //           .orient("left");
+    var y = linearScale;
+    var x = timeScale;
+
+    if (orientation == "up") {
+      svg.append("g").selectAll("rect")
+        .data(data)
+      .enter().append("rect")
+        .attr("x", function(d,i) {
+          return x(dateFormat.parse(d.key));
+        })
+        .attr("y", function(d,i) {
+          return height - y(d.values["casualties (min)"]);
+        })
+        .attr("width", 5)
+        .attr("height", function(d) {
+          return y(d.values["casualties (min)"]);
+        })
+        .attr("fill", "#666666")
+    }
+    else {
+      svg.append("g").selectAll("rect")
+        .data(data)
+      .enter().append("rect")
+        .attr("x", function(d,i) {
+          return x(dateFormat.parse(d.key));
+        })
+        .attr("y", function(d,i) {
+          return height;
+        })
+        .attr("width", 5)
+        .attr("height", function(d) {
+          return y(d.values["casualties (min)"]);
+        })
+        .attr("fill", "#999999")
+      .on("mouseover", function(d, i) {
+          tooltip.html(d.key + ", " + d.values["casualties (min)"])  
+            .style("left", i * 5 + "px")     
+            .style("top", 90 + "px")
+            .style("opacity", 1)
+            .style("position", "absolute");
+
+          d3.select(this).attr("opacity", 0.5).transition();
+        })
+      .on("mouseout", function() {
+
+        d3.select(this).attr("opacity", 1).transition();
+        tooltip.style("opacity", 0); 
+      })
+    }
+
+  }
+
+	d3.tsv("data.tsv", function(error, data) {
+    var allData = data;
+    airData = data.filter(function(d) {
+      return d["Event Type 1"] == "air";
+    });
+    groundData = data.filter(function(d) {
+      return d["Event Type 1"] == "ground";
+    });
+    airByMonth = getDataByMonth(airData);
+    groundByMonth = getDataByMonth(groundData);
+
+    var dateFormat = d3.time.format("%e-%b-%y");
+    var timeScale = d3.time.scale()
+            .domain(d3.extent(allData, function(d) { return dateFormat.parse(d.date); }))
+            .range([0, 1000]);
+    var linearScale = d3.scale.linear().range([0, 500]).domain([0, 1300]);
+
+    var condensedDateFormat = d3.time.format("%m/%Y");
+
+    //Air Graph
+    drawGraph(airByMonth, 1000, 500, condensedDateFormat, linearScale, timeScale, "up");
+    drawGraph(groundByMonth, 1000, 500, condensedDateFormat, linearScale, timeScale, "down");
+  });
+</script>

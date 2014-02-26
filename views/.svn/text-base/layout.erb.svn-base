@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title></title>
+    <meta content="en" http-equiv="Content-Language">
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      table, td, tr, thead, tfoot, tbody, th, tf { 
+        border-collapse: collapse; 
+        margin: 0px; 
+        padding: 0px;
+      }
+
+      svg {
+        z-index: 10;
+        position: absolute;
+        margin-top: 62px;
+      }
+
+      .tooltip {
+        z-index: 100;
+      }
+    </style>    
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+	</head>
+  <body>
+  	<%= yield %>
+  </body>
+</html>
