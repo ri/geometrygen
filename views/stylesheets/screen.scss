@@ -5,3 +5,31 @@ h1 {font-size: $type1;}
 h2 {font-size: $type2;}
 h3 {font-size: $type3;}
 h4 {font-size: $type4;}
+
+#controls {
+	width: 200px;
+	float: left
+} 
+#controls .control x-slider {
+	display: block;
+	clear: both;
+}
+#controls .control {
+	clear: both;
+	margin-bottom: 10px
+}
+#controls .control .value {
+	width: 20px;
+	float: right;
+}
+#controls .control .min {
+	float: left;
+}
+
+#controls .control .max {
+	float: right;
+}
+
+#canvas {
+	float: left
+}
